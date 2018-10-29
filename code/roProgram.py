@@ -12,7 +12,7 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-class RoboProProgram():
+class RoboProProgram(object):
     """
     The RoboProProgram-Class is able to parse and execute a .rpp-File generated
     from the RoboPro-Software.
@@ -37,7 +37,8 @@ class RoboProProgram():
     def addNewSubroutine(self, subRaw):
         subRtName = subRaw.attrs["name"]
         subRtObj = RoboProSubroutine(subRaw)
-        subRtObj.buildGraph() ## DEBUG
+        # subRtObj.debugPrint() ## DEBUG
+        subRtObj.buildGraph()
         self._subroutines[subRtName] = subRtObj
 
     def run(self):

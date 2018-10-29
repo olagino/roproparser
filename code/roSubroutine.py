@@ -19,12 +19,26 @@ class RoboProSubroutine(object):
     stanciated by the RoboProProgram-Class.
     """
     objectTypeList = [
+        # Start-Stop-Blocks
         "ftProProcessStart",
         "ftProProcessStop",
         "ftProFlowIf",
+        # Data transmission
         "ftProDataIn",
         "ftProDataOutDual",
-        "ftProDataMssg"
+        # = Send stuff-Command
+        "ftProDataMssg",
+        "ftProFlowWaitChange",
+        # Subroutine-Specific-Blocks
+        "ftProSubroutineFlowIn",
+        "ftProSubroutineFlowOut",
+        "ftProSubroutineDataIn",
+        "ftProSubroutineDataOut",
+        # Variable and stuff
+        "ftProDataVariable",
+        "ftProDataConst",
+        "ftProDataOprt", # operator
+        ""
     ]
 
     wireTypeList = [
@@ -36,6 +50,7 @@ class RoboProSubroutine(object):
         self._objects = []
         self._wires = []
         self._subroutineRaw = subroutineXmlSoup
+        self._connectionChains = []
         self.parse()
 
     def parse(self):
@@ -75,11 +90,11 @@ class RoboProSubroutine(object):
         for wireDat in wList:
             wireNew = RoboProWire()
             wireNew._type = wireDat["type"] + "Helper"
-            wireNew._begin = wireDat["wireinput"]
-            wireNew._end = wireDat["wireoutput"]
+            wireNew._wireinput = wireDat["wireinput"]
+            wireNew._wireoutput = wireDat["wireoutput"]
             wireNew._points = [
-                {"id": "autogen", "name": "begin", "type": "flowwireinput", "resolve": wireNew._begin},
-                {"id": "autogen", "name": "end", "type": "flowwireoutput", "resolve": wireNew._end}
+                {"id": "autogen", "name": "begin", "type": "flowwireinput", "resolve": wireNew._wireinput},
+                {"id": "autogen", "name": "end", "type": "flowwireoutput", "resolve": wireNew._wireoutput}
             ]
             self._wires.append(wireNew)
         # generate a set of dummy-objects
@@ -95,16 +110,64 @@ class RoboProSubroutine(object):
                 objNew._pins.append(dat)
             self._objects.append(objNew)
 
+    def _followWire(self, inputID):
+        """
+        The _followWire function takes an input-ID and follows the wire to the
+        next element in the chain and returns the ID of the Block-Input
+        """
+        for wire in self._wires:
+            if wire._wireoutput == inputID:
+                return wire._wireinput
+        return None
 
-    def buildGraph(self):
+    def _findObject(self, objectID):
+        """
+        The function cycles through all elements in the subroutine and looks for
+        the corresponding input ID. It returns a reference to the object (its ID)
+        and the outgoing IDs.
+        """
+        for object in self._objects:
+            for pin in object._pins:
+                if pin["id"] == objectID:
+                    outPinList = object.getPinId("flowobjectoutput")
+                    return outPinList, object
+        return None, None
+
+    def debugPrint(self):
+        print("SUBROUTINE HERE\n" +50 * "=")
         for obj in self._objects:
-            print("OBJ", obj._type)
+            print("OBJ", obj._type, "(" + obj._id + ")")
             for pin in obj._pins:
                 print(" >", "ID" + pin["id"], pin["pinclass"], pin["name"])
         for wire in self._wires:
             print("WIR", wire._type)
             for point in wire._points:
                 print(" |", "ID" + point["id"], "RE" + point["resolve"], point["type"])
+
+    def buildGraph(self):
+        for object in self._objects:
+            if object._type in ["ftProProcessStart"]:
+                elementChain = []
+                id = object.getPinId("flowobjectoutput")[0]
+                obj = object
+                while self._followWire(id) is not None:
+                    elementChain.append(obj)
+                    newID = self._followWire(id)
+                    newIDL, newObj = self._findObject(newID)
+                    if newIDL is not None and len(newIDL) >= 1:
+                        id = newIDL[0] ## DEBUG: ignores all other outputs, only for testing
+                        obj = newObj
+                    elif newIDL is not None:
+                        elementChain.append(newObj)
+                        break;
+                    else:
+                        break
+                self._connectionChains.append(elementChain)
+        for el in self._connectionChains:
+            print("====")
+            for e in el:
+                print(e)
+                print("V")
 
     def run(self):
         pass

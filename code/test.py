@@ -12,6 +12,6 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-file = open("../test/testprogramm.xml", "r")
+file = open("../test/regal_test.xml", "r")
 text = "".join(file.readlines())
-RoboProProgram(text)
+ropro = RoboProProgram(text)
