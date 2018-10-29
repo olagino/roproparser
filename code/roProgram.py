@@ -37,6 +37,7 @@ class RoboProProgram():
     def addNewSubroutine(self, subRaw):
         subRtName = subRaw.attrs["name"]
         subRtObj = RoboProSubroutine(subRaw)
+        subRtObj.buildGraph() ## DEBUG
         self._subroutines[subRtName] = subRtObj
 
     def run(self):

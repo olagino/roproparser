@@ -20,11 +20,12 @@ class RoboProWire():
     """
     def __init__(self, wireXmlSoup=None):
         self._wireRaw = wireXmlSoup
+        self._type = ""
         self._points = []
         self._begin = ""
-        self._nodes = []
         self._end = ""
-        self.parse()
+        if self._wireRaw is not None:
+            self.parse()
 
     def parse(self):
         self._type = self._wireRaw.attrs["classname"]
@@ -34,10 +35,47 @@ class RoboProWire():
             pinData = {
                 "id": pin.attrs["id"],
                 "name": pin.attrs["name"],
-                "resovle": pin.attrs["resolveid"],
+                "resolve": pin.attrs["resolveid"],
                 "type": pin.attrs["pinclass"]
             }
             self._points.append(pinData)
+            if pinData["name"] == "begin":
+                self._begin = pinData["resolve"]
+            elif pinData["name"] == "end":
+                self._end = pinData["resolve"]
 
-    def getObjectList(self):
-        return []
+    def getObjectWireList(self):
+        """
+        dynamic:
+        - create object with dynamic-id as outpin, resolveid as inpin
+        - create wire (end = dynamic-id, begin = orig-begin)
+        """
+        wireList = []
+        objectList = []
+        category = "flow" if "flow" in self._type else "data"
+        linkto = ""
+        for point in self._points:
+            if "wireinput" in point["type"]:
+                linkto = point["resolve"]
+            elif point["name"] == "dynamic":
+                wire = {
+                    "wireinput": linkto,
+                    "wireoutput": point["id"],
+                    "type": self._type
+                }
+                wireList.append(wire)
+                object = {
+                    "type": category + "Helper",
+                    "pin": [
+                        {
+                            "type": category + "objectinput",
+                            "id": point["id"]
+                        },
+                        {
+                            "type": category + "objectoutput",
+                            "id": point["id"]
+                        }
+                    ]
+                }
+                objectList.append(object)
+        return wireList, objectList

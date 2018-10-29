@@ -22,7 +22,8 @@ class RoboProObject():
         self._objectRaw = objectXmlSoup
         self._type = None
         self._pins = []
-        self.parse()
+        if self._objectRaw is not None:
+            self.parse()
 
     def parse(self):
         self._type = self._objectRaw.attrs["classname"]
