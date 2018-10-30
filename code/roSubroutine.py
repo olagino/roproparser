@@ -51,6 +51,7 @@ class RoboProSubroutine(object):
         self._wires = []
         self._subroutineRaw = subroutineXmlSoup
         self._connectionChains = []
+        self._connectionFragments = []
         self.parse()
 
     def parse(self):
@@ -145,29 +146,23 @@ class RoboProSubroutine(object):
                 print(" |", "ID" + point["id"], "RE" + point["resolve"], point["type"])
 
     def buildGraph(self):
-        for object in self._objects:
-            if object._type in ["ftProProcessStart"]:
-                elementChain = []
-                id = object.getPinId("flowobjectoutput")[0]
-                obj = object
-                while self._followWire(id) is not None:
-                    elementChain.append(obj)
-                    newID = self._followWire(id)
-                    newIDL, newObj = self._findObject(newID)
-                    if newIDL is not None and len(newIDL) >= 1:
-                        id = newIDL[0] ## DEBUG: ignores all other outputs, only for testing
-                        obj = newObj
-                    elif newIDL is not None:
-                        elementChain.append(newObj)
-                        break;
-                    else:
-                        break
+        for startobject in self._objects:
+            if startobject._type in ["ftProProcessStart", "ftProSubroutineFlowIn"]:
+                elChain = {"obj": "start", "next": []}
+                elementChain = self.__buildGraphRec(startobject)
                 self._connectionChains.append(elementChain)
-        for el in self._connectionChains:
-            print("====")
-            for e in el:
-                print(e)
-                print("V")
+        return self._connectionChains
+
+    def __buildGraphRec(self, startObj):
+        elChain = {"aobj": startObj, "next": []}
+        followIdList = startObj.getPinId("flowobjectoutput")
+        followIdList += startObj.getPinId("dataobjectoutput")
+        for beginPin in followIdList:
+            endPin = self._followWire(beginPin)
+            endObj = self._findObject(endPin)[1]
+            if endObj is not None:
+                elChain["next"].append(self.__buildGraphRec(endObj))
+        return elChain
 
     def run(self):
         pass
