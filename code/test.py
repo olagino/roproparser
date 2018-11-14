@@ -12,6 +12,7 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-file = open("../test/regal_test.xml", "r")
+file = open("../test/testprogramm.rpp", "r")
 text = "".join(file.readlines())
 ropro = RoboProProgram(text)
+ropro.run()

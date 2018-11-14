@@ -20,9 +20,9 @@ class RoboProObject(object):
     """
     def __init__(self, objectXmlSoup=None):
         self._objectRaw = objectXmlSoup
-        self._type = None
-        self._id = ""
-        self._pins = []
+        self._type = None  # Category of the block, e.g. ftProProcessStart
+        self._id = ""  # Internal ID given in the XML-Structure
+        self._pins = []  # list of data- and flow-connection-pins
         if self._objectRaw is not None:
             self.parse()
 
@@ -30,6 +30,10 @@ class RoboProObject(object):
         return "RoObj_" + self._id + "_" + self._type
 
     def parse(self):
+        '''
+        Extract all necessary informations about this Diagram-Block out of the
+        given XML-Structure and store it in different Variables.
+        '''
         self._type = self._objectRaw.attrs["classname"]
         try:
             self._id = self._objectRaw.attrs["id"]
@@ -47,8 +51,22 @@ class RoboProObject(object):
             self._pins.append(pinData)
 
     def getPinId(self, pinclass):
+        '''
+        Fetch and return all connection pins of a given type
+        '''
         list = []
         for pin in self._pins:
             if pinclass in pin["pinclass"]:
                 list.append(pin["id"])
         return list
+
+    def run(self, inputID):
+        '''
+        This function is called by the Subroutine-Object. Depending on its object
+        type it takes additional input arguments (e.g. Input-Sensors or variables)
+        and returns the next coutputID (e.g. important for an if-else-Block).
+        Additionally it may return additional Arguments, e.g. for Motor-Outputs.
+        '''
+        outputID = None
+        arguments = {}
+        return outputID, arguments

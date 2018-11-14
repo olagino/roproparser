@@ -1,0 +1,6 @@
+- Data-transmission on data-wires does not work properly because of some general
+problems with the programs logic structure. When input values are missing, the
+Block tries to backpropagate its values on the logical chain but this may not be
+successful every time.
+- The structure isnt' very easy to understand and maintain. The generation of
+pseudo elements to simulate converging wires isn't a very nice solution.

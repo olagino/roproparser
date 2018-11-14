@@ -41,5 +41,7 @@ class RoboProProgram(object):
         subRtObj.buildGraph()
         self._subroutines[subRtName] = subRtObj
 
-    def run(self):
-        pass
+    def run(self, subroutine="Hauptprogramm"):
+        if subroutine in self._subroutines:
+            subObj = self._subroutines[subroutine]
+            subObj.run()

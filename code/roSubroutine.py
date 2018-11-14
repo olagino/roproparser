@@ -146,6 +146,11 @@ class RoboProSubroutine(object):
                 print(" |", "ID" + point["id"], "RE" + point["resolve"], point["type"])
 
     def buildGraph(self):
+        '''
+        This function builds a multidimensional, partly kind of recursive graph
+        to representate the general structure of the main blocks. It partially
+        ignores data-wires and its connections so the path is kept very slim
+        '''
         for startobject in self._objects:
             if startobject._type in ["ftProProcessStart", "ftProSubroutineFlowIn"]:
                 elChain = {"obj": "start", "next": []}
@@ -154,6 +159,11 @@ class RoboProSubroutine(object):
         return self._connectionChains
 
     def __buildGraphRec(self, startObj):
+        '''
+        This is a helper function of the buildGraph-function. It fetches all out-
+        going objects and adds them to a list so the main function can follow
+        those traces.
+        '''
         elChain = {"aobj": startObj, "next": []}
         followIdList = startObj.getPinId("flowobjectoutput")
         followIdList += startObj.getPinId("dataobjectoutput")
@@ -164,5 +174,14 @@ class RoboProSubroutine(object):
                 elChain["next"].append(self.__buildGraphRec(endObj))
         return elChain
 
-    def run(self):
-        pass
+
+    def run(self, startObj=None):
+        '''
+        The run function is mainly called in two situations.
+        1) The subroutine is started as an Main-Program. It doesn't have a Sub-
+        program-Input-Block but one or more main start-blocks. Each block should
+        be run in an own thread, following all elements down the logical structure.
+        2) The subroutine is referenced and started by another subprogram. It now
+        acts to the outside-function as an roObject, dedicated to do its stuff and
+        then just return the outputID and optionally some arguments.
+        '''
