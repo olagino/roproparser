@@ -50,17 +50,23 @@ class RoboProObject(object):
             }
             self._pins.append(pinData)
 
-    def getPinId(self, pinclass):
+    def getPinIdByClass(self, pinclass):
         '''
         Fetch and return all connection pins of a given type
         '''
+        return self.getPinIdByAttr("pinclass", pinclass)
+
+    def getPinIdByAttr(self, attr, value):
+        '''
+        Fetch and return all connection pins of a given type and value
+        '''
         list = []
         for pin in self._pins:
-            if pinclass in pin["pinclass"]:
+            if value in pin[attr]:
                 list.append(pin["id"])
         return list
 
-    def run(self, inputID):
+    def run(self, data, inputID=None):
         '''
         This function is called by the Subroutine-Object. Depending on its object
         type it takes additional input arguments (e.g. Input-Sensors or variables)
@@ -69,4 +75,33 @@ class RoboProObject(object):
         '''
         outputID = None
         arguments = {}
+        if self._type == "ftProProcessStart": # program start block
+            outputID = self.getPinIdByClass("flowobjectoutput")[0]
+        elif self._type == "ftProFlowIf":  # if block
+            # Get Pin-IDs for the Yes-Outputs and No-Outputs
+            outYes = self.getPinIdByAttr("name", "J")
+            outNo = self.getPinIdByAttr("name", "N")
+            if data is not None:
+                # try to backpropagate
+                pinIDin = self.getPinIdByClass("dataobjectinput")[0]
+                value = self.calculateDataValue(data, pinIDin)
+
+        elif self._type == "ftProDataIn": # sensor/data-in block
+            # fetch type dependent settings
+            IFaceNumber = self._objectRaw.attrs["module"]
+            IFacePortNo = self._objectRaw.attrs["input"]
+            IFacePortMode = self._objectRaw.attrs["inputMode"]
+            arguments["value"] = "foo"
+        else:
+            print(self._type)
         return outputID, arguments
+
+    def calculateDataValue(self, data, pinIDin):
+        '''
+        This function is especially important for objects who use data-flow-wires
+        to get their information. It tries to backfollow the orange connections
+        to their origins.
+        '''
+        dataInBack = data._followWireReverse(pinIDin)
+        pins, objectBack = data._findObject(dataInBack)
+        return objectBack.run(data)

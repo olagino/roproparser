@@ -121,6 +121,16 @@ class RoboProSubroutine(object):
                 return wire._wireinput
         return None
 
+    def _followWireReverse(self, outputID):
+        """
+        The _followWireReverse function takes an output-ID and follows the wire to the
+        next element in the chain to return the ID of the Block-Output connected to it.
+        """
+        for wire in self._wires:
+            if wire._wireinput == outputID:
+                return wire._wireoutput
+        return None
+
     def _findObject(self, objectID):
         """
         The function cycles through all elements in the subroutine and looks for
@@ -130,7 +140,7 @@ class RoboProSubroutine(object):
         for object in self._objects:
             for pin in object._pins:
                 if pin["id"] == objectID:
-                    outPinList = object.getPinId("flowobjectoutput")
+                    outPinList = object.getPinIdByClass("flowobjectoutput")
                     return outPinList, object
         return None, None
 
@@ -165,8 +175,8 @@ class RoboProSubroutine(object):
         those traces.
         '''
         elChain = {"aobj": startObj, "next": []}
-        followIdList = startObj.getPinId("flowobjectoutput")
-        followIdList += startObj.getPinId("dataobjectoutput")
+        followIdList = startObj.getPinIdByClass("flowobjectoutput")
+        followIdList += startObj.getPinIdByClass("dataobjectoutput")
         for beginPin in followIdList:
             endPin = self._followWire(beginPin)
             endObj = self._findObject(endPin)[1]
@@ -185,3 +195,21 @@ class RoboProSubroutine(object):
         acts to the outside-function as an roObject, dedicated to do its stuff and
         then just return the outputID and optionally some arguments.
         '''
+        for startobject in self._objects:
+            if startobject._type == "ftProProcessStart":
+                # situation 1
+                # TODO: create new thread for the following while-lool/start block
+                outputID, arguments = startobject.run(self)
+                while outputID is not None:
+                    # follow the output-wire
+                    nextPin = self._followWire(outputID)
+                    nextObj = self._findObject(nextPin)[1]
+                    # TODO: check, if object has input-values.
+                    # if so, backpropagate to get these values
+                    outputID, arguments = nextObj.run(self, inputID=outputID)
+
+            elif startobject._type == "ftProSubroutineFlowIn":
+                # situation 2
+                pass
+            else:
+                return None
