@@ -3,6 +3,7 @@
 #
 from bs4 import BeautifulSoup
 from roSubroutine import RoboProSubroutine
+from roIOWrap import RoboProIOWrap
 
 __author__     = "Leon Schnieber"
 __copyright__  = "Copyright 2018"
@@ -22,6 +23,7 @@ class RoboProProgram(object):
     def __init__(self, xmlstr):
         self.soup = BeautifulSoup(xmlstr, "xml")
         self._subroutines = {}
+        self._io = RoboProIOWrap()
         self.parse()
 
     def parse(self):
@@ -37,6 +39,7 @@ class RoboProProgram(object):
     def addNewSubroutine(self, subRaw):
         subRtName = subRaw.attrs["name"]
         subRtObj = RoboProSubroutine(subRaw)
+        subRtObj.setIO(self._io)
         # subRtObj.debugPrint() ## DEBUG
         subRtObj.buildGraph()
         self._subroutines[subRtName] = subRtObj

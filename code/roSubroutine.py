@@ -52,6 +52,7 @@ class RoboProSubroutine(object):
         self._subroutineRaw = subroutineXmlSoup
         self._connectionChains = []
         self._connectionFragments = []
+        self._io = None
         self.parse()
 
     def parse(self):
@@ -73,10 +74,12 @@ class RoboProSubroutine(object):
             for wireRaw in data:
                 self.addNewWire(wireRaw)
 
+    def setIO(self, io):
+        self._io = io
 
     def addNewObject(self, objRaw):
         """ Instanciates a new RoboProObject to be later used"""
-        obj = RoboProObject(objRaw)
+        obj = RoboProObject(self, objRaw)
         self._objects.append(obj)
 
     def addNewWire(self, wireRaw):
@@ -100,7 +103,7 @@ class RoboProSubroutine(object):
             self._wires.append(wireNew)
         # generate a set of dummy-objects
         for objDat in oList:
-            objNew = RoboProObject()
+            objNew = RoboProObject(self)
             objNew._type = objDat["type"]
             for objDatPin in objDat["pin"]:
                 dat = {
@@ -206,7 +209,7 @@ class RoboProSubroutine(object):
                     nextObj = self._findObject(nextPin)[1]
                     # TODO: check, if object has input-values.
                     # if so, backpropagate to get these values
-                    outputID, arguments = nextObj.run(self, inputID=outputID)
+                    outputID, arguments = nextObj.run(self)
 
             elif startobject._type == "ftProSubroutineFlowIn":
                 # situation 2

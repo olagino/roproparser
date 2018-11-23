@@ -16,3 +16,15 @@ file = open("../test/testprogramm.rpp", "r")
 text = "".join(file.readlines())
 ropro = RoboProProgram(text)
 ropro.run()
+
+# file = open("../test/input_test.rpp", "r")
+# text = "".join(file.readlines())
+# ropro = RoboProProgram(text)
+# subrout = ropro._subroutines["Hauptprogramm"]
+# for obj in subrout._objects:
+#     if obj._type == "ftProDataMssg":
+#         print("OBJ", obj._type, "(" + obj._id + ")")
+#         data = obj._objectRaw.attrs["command"]
+#         print(data)
+#     else:
+#         print(obj._type)
