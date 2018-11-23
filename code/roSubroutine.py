@@ -209,7 +209,7 @@ class RoboProSubroutine(object):
                     nextObj = self._findObject(nextPin)[1]
                     # TODO: check, if object has input-values.
                     # if so, backpropagate to get these values
-                    outputID, arguments = nextObj.run(self)
+                    outputID, arguments = nextObj.run(self, arguments=arguments)
 
             elif startobject._type == "ftProSubroutineFlowIn":
                 # situation 2

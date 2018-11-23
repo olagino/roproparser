@@ -18,6 +18,9 @@ class RoboProObject(object):
     manually. This feature is mainly used for Pseudo-Objects used on converging
     wires.
     """
+    normal = 0
+    reverse = 1
+
     def __init__(self, subroutineToolbox, objectXmlSoup=None):
         self._objectRaw = objectXmlSoup
         self._subrtTools = subroutineToolbox
@@ -68,15 +71,20 @@ class RoboProObject(object):
                 list.append(pin["id"])
         return list
 
-    def run(self, inputID=None):
+    def run(self, inputID=None, arguments={}, mode=0):
         '''
         This function is called by the Subroutine-Object. Depending on its object
         type it takes additional input arguments (e.g. Input-Sensors or variables)
         and returns the next coutputID (e.g. important for an if-else-Block).
         Additionally it may return additional Arguments, e.g. for Motor-Outputs.
+        Depending on the mode-argument the single elements change their propagation-
+        behaviour. In normal Mode, they act forward, so they only find their "next"
+        object in the chain. In reverse-Mode they backpropagate to get the values
+        they work with. Not all blocks have to handle with that but there are some
+        where this is quite helpful.
         '''
         outputID = None
-        arguments = {}
+        print(self)
         if self._type == "ftProProcessStart": # program start block
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
         elif self._type == "ftProFlowIf":  # if block
@@ -86,7 +94,7 @@ class RoboProObject(object):
             # start backpropagating process to get a value for the comparsion
             pinIDin = self.getPinIdByClass("dataobjectinput")[0]
             # get the backpropagated value and return IDs depending on the value
-            val = self.calculateDataValue(self._subrtTools, pinIDin)["value"]
+            val = self.calculateDataValue(pinIDin)["value"]
             if val == 1 or val == True or val > 0:
                 outputID = outYes
             else:
@@ -109,46 +117,81 @@ class RoboProObject(object):
             # 3  = A 10V   Sensor-Type  8   (Farbsensor)
             # 4  = A 5k    Sensor-Types 4-5 (NTC-Widerstand, Fotowiderstand)
             # 10 = Ultra…  Sensor-Type  7   (Abstandssensor)
-            arguments["value"] = True
+            arguments["value"] = True # TODO: connect to IO-Wrapper
         elif self._type == "dataHelper": # merging Cable nodes
-            pass
+            if mode == self.normal:
+                pass
+            elif mode == self.reverse:
+                pass
         elif self._type == "ftProDataMssg":
-            pinIDIn = self.getPinIdByClass("dataobjectinput")
-            if len(pinIDIn) >= 1:
-                # backpropagate data from the connecting wires
-                value = int(self.calculateDataValue(self._subrtTools, pinIDIn)["value"])
-            else:
-                # get the value from the metadata
-                value = int(self._objectRaw.attrs["value"])
-            outputCommandType = self._objectRaw.attrs["command"]
-            # List of availiable types
-            # "="    = Set      (= n)
-            # "+"    = Incr     (= n+1)
-            # "-"    = Decr     (= n-1)
-            # "cw"   = CW Mot   (v=n)
-            # "ccw"  = CCW Mot  (v=n)
-            # "Stop" = Stop Mot (v=0)
-            # "On"   = On IO    (v=n)
-            # "Off"  = Off IO   (v=0)
-            # "Ap…d" = Append n to list
-            # "Re…e" = Remove nth list-element
-            # "Swap" = Swap nth element with first element in list
-            print(self._objectRaw)
+            if mode == self.normal:
+                pinIDIn = self.getPinIdByClass("dataobjectinput")
+                if len(pinIDIn) >= 1:
+                    # backpropagate data from the connecting wires
+                    value = int(self.calculateDataValue(pinIDIn[0])["value"])
+                else:
+                    # get the value from the metadata
+                    value = int(self._objectRaw.attrs["value"])
+                comType = self._objectRaw.attrs["command"]
+                # List of availiable types
+                # "="    = Set      (= n)
+                # "+"    = Incr     (= n+1)
+                # "-"    = Decr     (= n-1)
+                # "cw"   = CW Mot   (v=n)
+                # "ccw"  = CCW Mot  (v=n)
+                # "Stop" = Stop Mot (v=0)
+                # "On"   = On IO    (v=n)
+                # "Off"  = Off IO   (v=0)
+                # "Ap…d" = Append n to list
+                # "Re…e" = Remove nth list-element
+                # "Swap" = Swap nth element with first element in list
 
-
-            outputID = self.getPinIdByClass("dataobjectoutput")[0]
-            # "frontpropagate" all output paths and call their "run"-Functions until having reached all of them
+                # "branch out" of subroutine-run-thread and try to reach all connected wires with the data
+                # "frontpropagate" all paths and call their "run"-Functions
+                arguments = {
+                "commandType": comType,
+                "value": value
+                }
+                tOutputID = self.getPinIdByClass("dataobjectoutput")[0]
+                self.calculateFollowers(tOutputID, arguments)
+                outputID = self.getPinIdByClass("flowobjectoutput")[0]
+            elif mode == self.reverse:
+                pass # do nothing, the object isn't called actively
+        elif self._type == "ftProDataOutDual":
+            # get Details
+            IFaceNumber = self._objectRaw.attrs["module"]
+            IFacePortNo = int(self._objectRaw.attrs["output"])
+            IFacePortRes = int(self._objectRaw.attrs["resolution"])
+            if IFacePortRes == 0:  # if resolution is 0-8 convert it to 512-System
+                arguments["value"] = arguments["value"] * 64
+            # do something with the IO
+            self._subrtTools._io.setOutputType(IFaceNumber, IFacePortNo, arguments)
+        elif self._type == "ftProDataConst":
+            arguments["value"] = int(self._objectRaw.attrs["value"])
+        elif self._type == "ftProProcessStop":
+            outputID = None
+            arguments = None
         else:
-            print(self._type)
+            print("ERROR:", self._type, "isn't yet implemented.")
         return outputID, arguments
 
-    def calculateDataValue(self, data, pinIDin):
+    def calculateDataValue(self, pinIDin):
         '''
         This function is especially important for objects who use data-flow-wires
-        to get their information. It tries to backfollow the orange connections
-        to their origins.
+        to get their information. It tries to follow the orange connections in
+        reverse direction, back to their origins. (in reverse-direction-mode)
         '''
-        dataInBack = data._followWireReverse(pinIDin)
-        pins, objectBack = data._findObject(dataInBack)
-        outputID, arguments = objectBack.run(data)
+        dataInBack = self._subrtTools._followWireReverse(pinIDin)
+        pins, objectBack = self._subrtTools._findObject(dataInBack)
+        outputID, arguments = objectBack.run(mode=self.reverse)
+        return arguments
+
+    def calculateFollowers(self, pinIDout, arguments):
+        '''
+        This function follows the orange wires to all open ends and tries to "run"
+        them in normal-direction-mode so motors can be set etc.
+        '''
+        dataInNext = self._subrtTools._followWire(pinIDout)
+        pinx, objectNext = self._subrtTools._findObject(dataInNext)
+        outputID, arguments = objectNext.run(arguments=arguments)
         return arguments

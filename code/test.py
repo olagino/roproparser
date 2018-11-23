@@ -16,6 +16,7 @@ file = open("../test/testprogramm.rpp", "r")
 text = "".join(file.readlines())
 ropro = RoboProProgram(text)
 ropro.run()
+# ropro._subroutines["Hauptprogramm"].debugPrint()
 
 # file = open("../test/input_test.rpp", "r")
 # text = "".join(file.readlines())
