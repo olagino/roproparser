@@ -134,6 +134,17 @@ class RoboProSubroutine(object):
                 return wire._wireoutput
         return None
 
+    def _followWireList(self, inputID):
+        """
+        The _followWireList-Function finds all outgoing connections from a given
+        Pin-ID and returns a list of new endpoints (the in-ID of the next block)
+        """
+        list = []
+        for wire in self._wires:
+            if wire._wireoutput == inputID:
+                list.append(wire._wireinput)
+        return list
+
     def _findObject(self, objectID):
         """
         The function cycles through all elements in the subroutine and looks for
@@ -156,7 +167,7 @@ class RoboProSubroutine(object):
         for wire in self._wires:
             print("WIR", wire._type)
             for point in wire._points:
-                print(" |", "ID" + point["id"], "RE" + point["resolve"], point["type"])
+                print(" |", "ID" + point["id"], "RE" + point["resolve"], point["type"], point["name"])
 
     def buildGraph(self):
         '''
@@ -209,7 +220,10 @@ class RoboProSubroutine(object):
                     nextObj = self._findObject(nextPin)[1]
                     # TODO: check, if object has input-values.
                     # if so, backpropagate to get these values
-                    outputID, arguments = nextObj.run(self, arguments=arguments)
+                    if nextObj is not None:
+                        outputID, arguments = nextObj.run(self, arguments=arguments)
+                    else:
+                        break
 
             elif startobject._type == "ftProSubroutineFlowIn":
                 # situation 2

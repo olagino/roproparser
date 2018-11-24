@@ -120,7 +120,9 @@ class RoboProObject(object):
             arguments["value"] = True # TODO: connect to IO-Wrapper
         elif self._type == "dataHelper": # merging Cable nodes
             if mode == self.normal:
-                pass
+                # for pin in self._pins:
+                #     print(pin)
+                outputID = self.getPinIdByAttr("name", "objectoutput")[0]
             elif mode == self.reverse:
                 pass
         elif self._type == "ftProDataMssg":
@@ -191,7 +193,16 @@ class RoboProObject(object):
         This function follows the orange wires to all open ends and tries to "run"
         them in normal-direction-mode so motors can be set etc.
         '''
-        dataInNext = self._subrtTools._followWire(pinIDout)
-        pinx, objectNext = self._subrtTools._findObject(dataInNext)
-        outputID, arguments = objectNext.run(arguments=arguments)
-        return arguments
+        dataInNext = self._subrtTools._followWireList(pinIDout)
+        for wire in dataInNext:
+            objPinList, obj = self._subrtTools._findObject(wire)
+            outputID, arguments = obj.run(arguments=arguments)
+            while outputID is not None:
+                folWir = self._subrtTools._followWire(outputID)
+                pinList, object = self._subrtTools._findObject(folWir)
+                if object is not None:
+                    object.run(arguments=arguments)
+                    outputID = object._id
+                else:
+                    break
+            # print("RUN", obj, obj.run(arguments=arguments))

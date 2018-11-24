@@ -55,13 +55,37 @@ class RoboProWire(object):
         objectList = []
         category = "flow" if "flow" in self._type else "data"
         linkto = ""
+        linkfrom = ""
         for point in self._points:
-            if "wireinput" in point["type"]:
+            if "wireinput" in point["type"] and "flow" in point["type"]:
                 linkto = point["resolve"]
-            elif point["name"] == "dynamic":
+            elif "wireoutput" in point["type"] and "data" in point["type"]:
+                linkfrom = point["resolve"]
+            elif point["name"] == "dynamic" and "flow" in point["type"]:
                 wire = {
                     "wireinput": linkto,
                     "wireoutput": point["id"],
+                    "type": self._type
+                }
+                wireList.append(wire)
+                object = {
+                    "type": category + "Helper",
+                    "pin": [
+                        {
+                            "type": category + "objectinput",
+                            "id": point["id"]
+                        },
+                        {
+                            "type": category + "objectoutput",
+                            "id": point["id"]
+                        }
+                    ]
+                }
+                objectList.append(object)
+            elif point["name"] == "dynamic" and "data" in point["type"]:
+                wire = {
+                    "wireinput": point["id"],
+                    "wireoutput": linkfrom,
                     "type": self._type
                 }
                 wireList.append(wire)
