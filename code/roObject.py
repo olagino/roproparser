@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 from bs4 import BeautifulSoup
+import time
 
 __author__     = "Leon Schnieber"
 __copyright__  = "Copyright 2018"
@@ -88,41 +89,41 @@ class RoboProObject(object):
         if self._type == "ftProProcessStart": # program start block
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
         elif self._type == "ftProFlowIf":  # if block
-            # Get Pin-IDs for the Yes-Outputs and No-Outputs
-            outYes = self.getPinIdByAttr("name", "J")[0]
-            outNo = self.getPinIdByAttr("name", "N")[0]
-            # start backpropagating process to get a value for the comparsion
-            pinIDin = self.getPinIdByClass("dataobjectinput")[0]
-            # get the backpropagated value and return IDs depending on the value
-            val = self.calculateDataValue(pinIDin)["value"]
+            styleNo = int(self._objectRaw.attrs["style"])
+            # style-types:
+            # 1  = 8.6-Verzweigung mit Dateneingang
+            # 2  = 8.1-Verzweigung Digital
+            if styleNo == 1: # Verzweigung mit Dateneingang
+                # Get Pin-IDs for the Yes-Outputs and No-Outputs
+                outYes = self.getPinIdByAttr("name", "J")[0]
+                outNo = self.getPinIdByAttr("name", "N")[0]
+                # start backpropagating process to get a value for the comparsion
+                pinIDin = self.getPinIdByClass("dataobjectinput")[0]
+                # get the backpropagated value and return IDs depending on the value
+                val = self.calculateDataValue(pinIDin)["value"]
+            elif styleNo == 2:  # Verzweigung Digital
+                outYes = self.getPinIdByAttr("name", "1")[0]
+                outNo = self.getPinIdByAttr("name", "0")[0]
+                IFNo, IFPortNo, IFPortMode = self.readInputMeta()
+                val = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
             if val == 1 or val == True or val > 0:
                 outputID = outYes
             else:
                 outputID = outNo
         elif self._type == "ftProDataIn": # sensor/data-in block
             # fetch type dependent settings
-            IFaceNumber = self._objectRaw.attrs["module"]
-            # IFaceNumber-Values:
-            # IF1 = Master
-            IFacePortNo = int(self._objectRaw.attrs["input"]) - 159
-            # IFacePortNo-Values:
-            # I1 = 160
-            # I2 = 161
-            # …
-            # I8 = 167
-            IFacePortMode = self._objectRaw.attrs["inputMode"]
-            # IFacePortMode-Values:
-            # 0  = D 10V   Sensor-Type  6   (Spursensor)
-            # 1  = D 5k    Sensor-Types 1-3 (Taster, Fototransitor, Reed-Kontakt)
-            # 3  = A 10V   Sensor-Type  8   (Farbsensor)
-            # 4  = A 5k    Sensor-Types 4-5 (NTC-Widerstand, Fotowiderstand)
-            # 10 = Ultra…  Sensor-Type  7   (Abstandssensor)
+            IFNo, IFPortNo, IFPortMode = self.readInputMeta()
             arguments["value"] = True # TODO: connect to IO-Wrapper
         elif self._type == "dataHelper": # merging Cable nodes
             if mode == self.normal:
                 # for pin in self._pins:
                 #     print(pin)
-                outputID = self.getPinIdByAttr("name", "objectoutput")[0]
+                try:
+                    outputID = self.getPinIdByAttr("name", "flowobjectoutput")[0]
+                except IndexError:
+                    outputID = self.getPinIdByAttr("name", "dataobjectoutput")[0]
+                # outputID = self._subrtTools._followWire(outputID)
+                # print("HEY", self._subrtTools._findObject(outputID)[1])
             elif mode == self.reverse:
                 pass
         elif self._type == "ftProDataMssg":
@@ -160,16 +161,37 @@ class RoboProObject(object):
             elif mode == self.reverse:
                 pass # do nothing, the object isn't called actively
         elif self._type == "ftProDataOutDual":
+            # if this object is used as an Level 1 Object, it has to fetch its arguments by itself
+            if "classic" in self._objectRaw.attrs:
+                arguments["commandType"] = self._objectRaw.attrs["command"]
+                if self._objectRaw.attrs["value"] == "-32768":
+                    arguments["value"] = 0
+                else:
+                    arguments["value"] = int(self._objectRaw.attrs["value"]) * 64 # directly multiply because of classic-elements not supporting 512-step-mode
+                # in classic mode elements have to find their output for the next element
+                outputID = self.getPinIdByClass("flowobjectoutput")[0]
             # get Details
             IFaceNumber = self._objectRaw.attrs["module"]
             IFacePortNo = int(self._objectRaw.attrs["output"])
-            IFacePortRes = int(self._objectRaw.attrs["resolution"])
-            if IFacePortRes == 0:  # if resolution is 0-8 convert it to 512-System
-                arguments["value"] = arguments["value"] * 64
+            try:
+                IFacePortRes = int(self._objectRaw.attrs["resolution"])
+                if IFacePortRes == 0:  # if resolution is 0-8 convert it to 512-System
+                    arguments["value"] = int(arguments["value"]) * 64
+            except KeyError:
+                pass
             # do something with the IO
-            self._subrtTools._io.setOutputType(IFaceNumber, IFacePortNo, arguments)
+            self._subrtTools._io.setOutputValue(IFaceNumber, IFacePortNo, arguments)
+
         elif self._type == "ftProDataConst":
             arguments["value"] = int(self._objectRaw.attrs["value"])
+        elif self._type == "ftProFlowDelay":
+            # attrs["userscale"] = 0: 1s
+            # attrs["userscale"] = 1: 1min
+            # attrs["userscale"] = 2: 1h
+            # value = int(self._objectRaw.attrs["scale"]) * int(self._objectRaw.attrs["uservalue"])
+            value = int(self._objectRaw.attrs["value"]) / 1000
+            time.sleep(value)
+            outputID = self.getPinIdByClass("flowobjectoutput")[0]
         elif self._type == "ftProProcessStop":
             outputID = None
             arguments = None
@@ -206,3 +228,22 @@ class RoboProObject(object):
                 else:
                     break
             # print("RUN", obj, obj.run(arguments=arguments))
+
+    def readInputMeta(self):
+        IFaceNumber = self._objectRaw.attrs["module"]
+        # IFaceNumber-Values:
+        # IF1 = Master
+        IFacePortNo = int(self._objectRaw.attrs["input"]) - 159
+        # IFacePortNo-Values:
+        # I1 = 160
+        # I2 = 161
+        # …
+        # I8 = 167
+        IFacePortMode = int(self._objectRaw.attrs["inputMode"])
+        # IFacePortMode-Values:
+        # 0  = D 10V   Sensor-Type  6   (Spursensor)
+        # 1  = D 5k    Sensor-Types 1-3 (Taster, Fototransitor, Reed-Kontakt)
+        # 3  = A 10V   Sensor-Type  8   (Farbsensor)
+        # 4  = A 5k    Sensor-Types 4-5 (NTC-Widerstand, Fotowiderstand)
+        # 10 = Ultra…  Sensor-Type  7   (Abstandssensor)
+        return IFaceNumber, IFacePortNo, IFacePortMode

@@ -19,10 +19,11 @@ class RoboProSubroutine(object):
     stanciated by the RoboProProgram-Class.
     """
     objectTypeList = [
-        # Start-Stop-Blocks
+        # Start-Stop-Blocks: basic elements
         "ftProProcessStart",
         "ftProProcessStop",
         "ftProFlowIf",
+        "ftProFlowDelay",
         # Data transmission
         "ftProDataIn",
         "ftProDataOutDual",

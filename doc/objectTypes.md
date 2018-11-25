@@ -3,10 +3,10 @@
 ## 8.1 GRUNDELEMENTE
 * [x] Start
 * [x] Stop
-* [ ] Verzweigung Digital
+* [x] Verzweigung Digital
 * [ ] Verzweigung Analog
-* [ ] Wartezeit
-* [ ] Motorausgang
+* [x] Wartezeit
+* [x] Motorausgang
 * [ ] Encodermotor
 * [ ] Lampenausgang
 * [ ] Warten auf Eingang
