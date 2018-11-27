@@ -27,6 +27,12 @@ class RoboProSubroutine(object):
         # Data transmission
         "ftProDataIn",
         "ftProDataOutDual",
+        "ftProDataOutDualEx",
+        "ftProDataOutSngl",
+        "ftProFlowWaitChange",
+        "ftProFlowWaitCount",
+        "ftProFlowCountLoop",
+        "ftProFlowSound",
         # = Send stuff-Command
         "ftProDataMssg",
         "ftProFlowWaitChange",
@@ -196,6 +202,7 @@ class RoboProSubroutine(object):
             endPin = self._followWire(beginPin)
             endObj = self._findObject(endPin)[1]
             if endObj is not None:
+                print(endObj)
                 elChain["next"].append(self.__buildGraphRec(endObj))
         return elChain
 

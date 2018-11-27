@@ -3,6 +3,7 @@
 #
 from bs4 import BeautifulSoup
 from roProgram import RoboProProgram
+import time
 
 __author__     = "Leon Schnieber"
 __copyright__  = "Copyright 2018"
@@ -12,7 +13,7 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-file = open("../test/8.1_test.rpp", "r")
+file = open("../test/8.1_advanced.rpp", "r")
 # file = open("../test/testprogramm.rpp", "r")
 text = "".join(file.readlines())
 ropro = RoboProProgram(text)

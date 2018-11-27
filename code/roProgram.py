@@ -41,7 +41,7 @@ class RoboProProgram(object):
         subRtObj = RoboProSubroutine(subRaw)
         subRtObj.setIO(self._io)
         # subRtObj.debugPrint() ## DEBUG
-        subRtObj.buildGraph()
+        # subRtObj.buildGraph()
         self._subroutines[subRtName] = subRtObj
 
     def run(self, subroutine="Hauptprogramm"):

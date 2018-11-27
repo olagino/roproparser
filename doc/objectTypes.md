@@ -7,9 +7,9 @@
 * [ ] Verzweigung Analog
 * [x] Wartezeit
 * [x] Motorausgang
-* [ ] Encodermotor
+* [x] Encodermotor
 * [ ] Lampenausgang
-* [ ] Warten auf Eingang
+* [x] Warten auf Eingang
 * [ ] Impulszähler
 * [ ] Zählschleife
 * [ ] Sound

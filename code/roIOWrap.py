@@ -97,7 +97,20 @@ class RoboProIOWrap(object):
             val = 512
         if IFacePortNo >= 0 and IFacePortNo <= 3:
             output = iface.motor(IFacePortNo+1)
+            print(IFacePortNo, val, IFacePortSettings["commandType"])
             if IFacePortSettings["commandType"] in ["Links", "ccw"]:
                 output.setSpeed(-val)
             else:
                 output.setSpeed(val)
+            if "distance" in IFacePortSettings:
+                if "syncTo" in IFacePortSettings:
+                    output.setDistance(
+                        IFacePortSettings["distance"],
+                        syncto=iface.motor(IFacePortSettings["syncTo"]+1)
+                    )
+                else:
+                    output.setDistance(IFacePortSettings["distance"])
+        if "sleep" in IFacePortSettings and "distance" in IFacePortSettings:
+            while output.getCurrentDistance() < IFacePortSettings["distance"]:
+                time.sleep(0.01)
+            output.stop()
