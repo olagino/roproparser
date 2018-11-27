@@ -60,6 +60,7 @@ class RoboProSubroutine(object):
         self._connectionChains = []
         self._connectionFragments = []
         self._io = None
+        self._lastPin = None
         self.parse()
 
     def parse(self):
@@ -229,6 +230,7 @@ class RoboProSubroutine(object):
                     # TODO: check, if object has input-values.
                     # if so, backpropagate to get these values
                     if nextObj is not None:
+                        self._lastPin = nextPin  # save last object
                         outputID, arguments = nextObj.run(self, arguments=arguments)
                     else:
                         break

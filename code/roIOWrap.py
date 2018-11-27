@@ -60,7 +60,7 @@ class RoboProIOWrap(object):
             sensor = iface.resistor(IFacePortNo)
             value = sensor.value()
         elif IFacePortMode == 10: # ultrasonic
-            sensor = iface.ultrasonic()
+            sensor = iface.ultrasonic(IFacePortNo)
             value = sensor.distance()
         return value
 
@@ -78,6 +78,10 @@ class RoboProIOWrap(object):
         1   = M2
         …
         3   = M4
+        4   = O1
+        5   = O2
+        …
+        11  = O8
 
         IFacePortSettings: (dict)
         ["commandType"]   Language dependent set of commands.
@@ -97,7 +101,6 @@ class RoboProIOWrap(object):
             val = 512
         if IFacePortNo >= 0 and IFacePortNo <= 3:
             output = iface.motor(IFacePortNo+1)
-            print(IFacePortNo, val, IFacePortSettings["commandType"])
             if IFacePortSettings["commandType"] in ["Links", "ccw"]:
                 output.setSpeed(-val)
             else:
@@ -110,6 +113,9 @@ class RoboProIOWrap(object):
                     )
                 else:
                     output.setDistance(IFacePortSettings["distance"])
+        elif IFacePortNo >= 4 and IFacePortNo <= 11:
+            output = iface.output(IFacePortNo-3)
+            output.setLevel(IFacePortSettings["value"])
         if "sleep" in IFacePortSettings and "distance" in IFacePortSettings:
             while output.getCurrentDistance() < IFacePortSettings["distance"]:
                 time.sleep(0.01)

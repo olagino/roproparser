@@ -4,3 +4,9 @@ Block tries to backpropagate its values on the logical chain but this may not be
 successful every time.
 - The structure isnt' very easy to understand and maintain. The generation of
 pseudo elements to simulate converging wires isn't a very nice solution.
+- The program structure is extremely unflexible, especially in the roObject-Class.
+To improve that type-Specific roObject-Classes may be helpful, inheriting the nor-
+mal roObject-Class. At the moment it is only able to interpret the object-structure
+in the rpp-files in real time. It is not able to compile the structure into some
+other kind of programming language to run in standalone mode. This would allow a
+much better performance.

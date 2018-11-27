@@ -92,7 +92,7 @@ class RoboProObject(object):
             styleNo = int(self._objectRaw.attrs["style"])
             # style-types:
             # 1  = 8.6-Verzweigung mit Dateneingang
-            # 2  = 8.1-Verzweigung Digital
+            # 2  = 8.1-Verzweigung Digital/Analog
             if styleNo == 1: # Verzweigung mit Dateneingang
                 # Get Pin-IDs for the Yes-Outputs and No-Outputs
                 outYes = self.getPinIdByAttr("name", "J")[0]
@@ -102,14 +102,25 @@ class RoboProObject(object):
                 # get the backpropagated value and return IDs depending on the value
                 val = self.calculateDataValue(pinIDin)["value"]
             elif styleNo == 2:  # Verzweigung Digital
-                outYes = self.getPinIdByAttr("name", "1")[0]
-                outNo = self.getPinIdByAttr("name", "0")[0]
                 IFNo, IFPortNo, IFPortMode = self.readInputMeta()
                 val = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
-            if val == 1 or val == True or val > 0:
-                outputID = outYes
-            else:
-                outputID = outNo
+                if "operation" in self._objectRaw.attrs:
+                    oper = int(self._objectRaw.attrs["operation"])
+                    triggerVal = int(self._objectRaw.attrs["value"])
+                    if (oper == 0 and val > triggerVal) \
+                        or (oper == 1 and val >= triggerVal) \
+                        or (oper == 2 and val == triggerVal) \
+                        or (oper == 3 and val <= triggerVal) \
+                        or (oper == 4 and val < triggerVal) \
+                        or (oper == 5 and (val < triggerVal or val > triggerVal)):
+                        outputID = self.getPinIdByAttr("name", "J")[0]
+                    else:
+                        outputID = self.getPinIdByAttr("name", "N")[0]
+                else:
+                    if val == 1 or val == True or val > 0:
+                        outputID = self.getPinIdByAttr("name", "1")[0]
+                    else:
+                        outputID = self.getPinIdByAttr("name", "0")[0]
         elif self._type == "ftProDataIn": # sensor/data-in block
             # fetch type dependent settings
             IFNo, IFPortNo, IFPortMode = self.readInputMeta()
@@ -182,7 +193,6 @@ class RoboProObject(object):
             # do something with the IO
             self._subrtTools._io.setOutputValue(IFaceNumber, IFacePortNo, arguments)
         elif self._type == "ftProDataOutDualEx":  # encodermotor
-            print(self._objectRaw)
             IFaceNumber = self._objectRaw.attrs["module"]
             dir1 = self._objectRaw.attrs["direction1"]
             dir2 = self._objectRaw.attrs["direction2"]
@@ -227,7 +237,7 @@ class RoboProObject(object):
                 }
                 args1["distance"] = distance
                 args1["syncTo"] = out2
-                
+
                 args2["sleep"] = True
                 self._subrtTools._io.setOutputValue(IFaceNumber, out1, args1)
                 if out2 is not -1:
@@ -242,58 +252,88 @@ class RoboProObject(object):
                     self._subrtTools._io.setOutputValue(IFaceNumber, out2, args)
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
         elif self._type == "ftProDataOutSngl":  # single output (lamp)
-            # outputID = self.getPinIdByClass("flowobjectoutput")[0]
-            pass
-        elif self._type == "ftProFlowWaitChange": # wait for pulse change
+            # if this object is used as an Level 1 Object, it has to fetch its arguments by itself
             if "classic" in self._objectRaw.attrs:
-                IFNo, IFPortNo, IFPortMode = self.readInputMeta()
-                value = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
-                if "level" in self._objectRaw.attrs:
-                    if "up" in self._objectRaw.attrs:  # "0"
-                        while value is not 1:
-                            time.sleep(0.01)
-                            value = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
-                    elif "down" in self._objectRaw.attrs:  # "1"
-                        while value is not 0:
-                            time.sleep(0.01)
-                            value = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
+                IFaceNumber = self._objectRaw.attrs["module"]
+                IFacePortNo = int(self._objectRaw.attrs["output"]) + 4
+                IFacePortValue = int(self._objectRaw.attrs["value"])
+                IFacePortSettings = {
+                    "value": IFacePortValue
+                }
+                self._subrtTools._io.setOutputValue(IFaceNumber, IFacePortNo, IFacePortSettings)
+                outputID = self.getPinIdByClass("flowobjectoutput")[0]
+            else:
+                print("NOT implemented, please open an issue")
+
+            pass
+        elif self._type == "ftProFlowWaitChange" or self._type == "ftProFlowWaitCount": # wait for pulse change
+            if "classic" in self._objectRaw.attrs:
+                self._data = 0
+                if "count" in self._objectRaw.attrs:
+                    limit = int(self._objectRaw.attrs["count"])
                 else:
-                    if "up" in self._objectRaw.attrs:
-                        if "down" in self._objectRaw.attrs:  # up>down or down>up
-                            c = value
-                            while c == self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode):
+                    limit = 1
+                while self._data < limit:
+                    self._data += 1
+                    IFNo, IFPortNo, IFPortMode = self.readInputMeta()
+                    value = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
+                    if "level" in self._objectRaw.attrs:
+                        if "up" in self._objectRaw.attrs:  # "0"
+                            while value is not 1:
                                 time.sleep(0.01)
-                        else: # down>up
-                            while self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode) != 0:
+                                value = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
+                        elif "down" in self._objectRaw.attrs:  # "1"
+                            while value is not 0:
                                 time.sleep(0.01)
+                                value = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
+                    else:
+                        if "up" in self._objectRaw.attrs:
+                            if "down" in self._objectRaw.attrs:  # up>down or down>up
+                                c = value
+                                while c == self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode):
+                                    time.sleep(0.01)
+                            else: # down>up
+                                while self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode) != 0:
+                                    time.sleep(0.01)
+                                while self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode) != 1:
+                                    time.sleep(0.01)
+                        elif "down" in self._objectRaw.attrs: # up>down
                             while self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode) != 1:
                                 time.sleep(0.01)
-                    elif "down" in self._objectRaw.attrs: # up>down
-                        while self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode) != 1:
-                            time.sleep(0.01)
-                        while self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode) != 0:
-                            time.sleep(0.01)
+                            while self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode) != 0:
+                                time.sleep(0.01)
                 outputID = self.getPinIdByClass("flowobjectoutput")[0]
             else:
                 print("ERROR on", self._type, "is not from type classic")
-        elif self._type == "ftProFlowWaitCount":  # wait for pulse change count
-
-            outputID = self.getPinIdByClass("flowobjectoutput")[0]
-            pass
         elif self._type == "ftProFlowCountLoop":  # single loop
-            outputID = None
-            pass
+            cycleCount = int(self._objectRaw.attrs["count"])
+            # Get Input-Pin-Data
+            lastPin = self._subrtTools._lastPin
+            pinName = ""
+            for pin in self._pins:
+                if pin["id"] == lastPin:
+                    pinName = pin["name"]
+                    break
+            # Check conditions
+            if pinName == "=1":
+                self._data = 1
+                outputID = self.getPinIdByAttr("name", "N")[0]
+            elif pinName == "+1":
+                self._data += 1
+                if self._data > cycleCount:
+                    outputID = self.getPinIdByAttr("name", "J")[0]
+                else:
+                    outputID = self.getPinIdByAttr("name", "N")[0]
+            else:
+                print("ERROR", pinName)
+
         elif self._type == "ftProFlowSound":  # play sound stuff
             outputID = None
             pass
         elif self._type == "ftProDataConst":
             arguments["value"] = int(self._objectRaw.attrs["value"])
         elif self._type == "ftProFlowDelay":
-            # attrs["userscale"] = 0: 1s
-            # attrs["userscale"] = 1: 1min
-            # attrs["userscale"] = 2: 1h
-            # value = int(self._objectRaw.attrs["scale"]) * int(self._objectRaw.attrs["uservalue"])
-            value = (int(self._objectRaw.attrs["value"]) / int(self._objectRaw.attrs["uservalue"])) / 100
+            value = float(self._objectRaw.attrs["value"])* 10**int(self._objectRaw["scale"]) * 0.001
             time.sleep(value)
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
         elif self._type == "ftProProcessStop":

@@ -4,14 +4,14 @@
 * [x] Start
 * [x] Stop
 * [x] Verzweigung Digital
-* [ ] Verzweigung Analog
+* [x] Verzweigung Analog
 * [x] Wartezeit
 * [x] Motorausgang
 * [x] Encodermotor
-* [ ] Lampenausgang
+* [x] Lampenausgang
 * [x] Warten auf Eingang
-* [ ] Impulszähler
-* [ ] Zählschleife
+* [x] Impulszähler
+* [x] Zählschleife
 * [ ] Sound
 
 ## 8.2 SENDEN, EMPFANGEN
