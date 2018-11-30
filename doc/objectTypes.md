@@ -25,10 +25,10 @@
 * [ ] I2C lesen
 
 ## 8.3 UNTERPROGRAMM I/O
-* [ ] Unterprogramm Eingang
-* [ ] Unterprogramm Ausgang
-* [ ] Unterprogramm Befehlseingang
-* [ ] Unterprogramm Befehlsausgang
+* [x] Unterprogramm Eingang
+* [x] Unterprogramm Ausgang
+* [x] Unterprogramm Befehlseingang
+* [x] Unterprogramm Befehlsausgang
 
 ## 8.4 VARIABLE, LISTE
 * [ ] Variable global

@@ -225,7 +225,7 @@ class RoboProSubroutine(object):
         return elChain
 
 
-    def run(self, startObj=None, referenceSubprogram=None, referenceObjectID=None):
+    def run(self, startObj=None, referenceSubprogram=None, referenceObject=None):
         '''
         The run function is mainly called in two situations.
         1) The subroutine is started as an Main-Program. It doesn't have a Sub-
@@ -246,7 +246,7 @@ class RoboProSubroutine(object):
                 else:
                     return None
         else:
-            self._subrtReference = (referenceSubprogram, referenceObjectID)
+            self._subrtReference = (referenceSubprogram, referenceObject)
             return self._runObjectStructure(startObj)
 
     def _runObjectStructure(self, startobject):

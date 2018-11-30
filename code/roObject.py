@@ -143,7 +143,7 @@ class RoboProObject(object):
                 # print("HEY", self._subrtTools._findObject(outputID)[1])
             elif mode == self.reverse:
                 pass
-        elif self._type == "ftProDataMssg":
+        elif self._type == "ftProDataMssg":  # motor and output commands
             if mode == self.normal:
                 pinIDIn = self.getPinIdByClass("dataobjectinput")
                 if len(pinIDIn) >= 1:
@@ -177,7 +177,7 @@ class RoboProObject(object):
                 outputID = self.getPinIdByClass("flowobjectoutput")[0]
             elif mode == self.reverse:
                 pass # do nothing, the object isn't called actively
-        elif self._type == "ftProDataOutDual":
+        elif self._type == "ftProDataOutDual":  # dual-motor-commands
             # if this object is used as an Level 1 Object, it has to fetch its arguments by itself
             if "classic" in self._objectRaw.attrs:
                 arguments["commandType"] = self._objectRaw.attrs["command"]
@@ -331,19 +331,18 @@ class RoboProObject(object):
                     outputID = self.getPinIdByAttr("name", "N")[0]
             else:
                 print("ERROR", pinName)
-
         elif self._type == "ftProFlowSound":  # play sound stuff
             outputID = None
             pass
-        elif self._type == "ftProDataConst":
+        elif self._type == "ftProDataConst":  # constant-variables
             arguments["value"] = int(self._objectRaw.attrs["value"])
-        elif self._type == "ftProFlowDelay":
+        elif self._type == "ftProFlowDelay":  # normal waiting-function
             value = float(self._objectRaw.attrs["value"]) \
                     * 10**int(self._objectRaw["scale"]) * 0.001
             time.sleep(value)
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
         ### START SUBROUTINE-OBJECT-TYPES
-        elif self._type == "ftProSubroutineRef":
+        elif self._type == "ftProSubroutineRef":  # subroutine-block
             """
             get subroutine-Name and find entry-pin-id
             """
@@ -356,25 +355,31 @@ class RoboProObject(object):
                 inputPinUID = pinData["pinid"]
                 endObj = subrt._findSubrtInputObject(inputPinUID)[1]
                 refSubrt = self._subrtTools._name
-                refObjID = self._id
-                subrtOutputObj = subrt.run(endObj, refSubrt, refObjID)
+                refObj = self
+                subrtOutputObj = subrt.run(endObj, refSubrt, refObj)
                 subrtOutputUID = subrtOutputObj._objectRaw.attrs["uniqueID"]
                 for pin in self._pins:
                     if pin["pinid"] == subrtOutputUID:
                         outputID = pin["id"]
             else:
                 print("The subroutine " + str(subrtName) + " cannot be found in this file.")
-        elif self._type == "ftProSubroutineFlowIn":
+        elif self._type == "ftProSubroutineFlowIn":  # subroutine-flow-input-block
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
-        elif self._type == "ftProSubroutineFlowOut":
+        elif self._type == "ftProSubroutineFlowOut":  # subroutine-flow output block
+            # should not be needed because of exception in the subrt-run-function
             outputID = self._id
         elif self._type == "ftProSubroutineDataIn":
-            # use information in self._subrtTools._subrtReference to start
-            # backpropagation
-            pass
+            outerObject = self._subrtTools._subrtReference[1]
+            innerUID = self._objectRaw.attrs["uniqueID"]
+            outerPinID = outerObject.getPinIdByAttr("pinid", innerUID)[0]
+            outerPin = self._findPin(outerPinID)
+            arguments = outerObject.calculateDataValue(outerPinID)
         elif self._type == "ftProSubroutineDataOut":
-            # use hint seen ftProSubroutineDataIn
-            print("FOOOO, HELP ME")
+            # use information in self._subrtTools._subrtReference to start
+            outerObject = self._subrtTools._subrtReference[1]
+            innerUID = self._objectRaw.attrs["uniqueID"]
+            outerPinID = outerObject.getPinIdByAttr("pinid", innerUID)[0]
+            outerObject.calculateFollowers(outerPinID, arguments)
             pass
         ### STOP SUBROUTINE-OBJECT-TYPES
         elif self._type == "ftProProcessStop":
