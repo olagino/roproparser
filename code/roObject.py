@@ -104,6 +104,12 @@ class RoboProObject(object):
             elif styleNo == 2:  # Verzweigung Digital
                 IFNo, IFPortNo, IFPortMode = self.readInputMeta()
                 val = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
+                try:
+                    outYes = self.getPinIdByAttr("name", "J")[0]
+                    outNo = self.getPinIdByAttr("name", "N")[0]
+                except IndexError:
+                    outYes = self.getPinIdByAttr("name", "1")[0]
+                    outNo = self.getPinIdByAttr("name", "0")[0]
                 if "operation" in self._objectRaw.attrs:
                     oper = int(self._objectRaw.attrs["operation"])
                     triggerVal = int(self._objectRaw.attrs["value"])
@@ -113,14 +119,14 @@ class RoboProObject(object):
                         or (oper == 3 and val <= triggerVal) \
                         or (oper == 4 and val < triggerVal) \
                         or (oper == 5 and (val < triggerVal or val > triggerVal)):
-                        outputID = self.getPinIdByAttr("name", "J")[0]
+                        outputID = outYes
                     else:
-                        outputID = self.getPinIdByAttr("name", "N")[0]
+                        outputID = outNo
                 else:
                     if val == 1 or val == True or val > 0:
-                        outputID = self.getPinIdByAttr("name", "1")[0]
+                        outputID = outYes
                     else:
-                        outputID = self.getPinIdByAttr("name", "0")[0]
+                        outputID = outNo
         elif self._type == "ftProDataIn": # sensor/data-in block
             # fetch type dependent settings
             IFNo, IFPortNo, IFPortMode = self.readInputMeta()
@@ -309,11 +315,10 @@ class RoboProObject(object):
             cycleCount = int(self._objectRaw.attrs["count"])
             # Get Input-Pin-Data
             lastPin = self._subrtTools._lastPin
-            pinName = ""
-            for pin in self._pins:
-                if pin["id"] == lastPin:
-                    pinName = pin["name"]
-                    break
+            try:
+                pinName = self._findPin(lastPin)["name"]
+            except IndexError:
+                pinName = ""
             # Check conditions
             if pinName == "=1":
                 self._data = 1
@@ -333,9 +338,45 @@ class RoboProObject(object):
         elif self._type == "ftProDataConst":
             arguments["value"] = int(self._objectRaw.attrs["value"])
         elif self._type == "ftProFlowDelay":
-            value = float(self._objectRaw.attrs["value"])* 10**int(self._objectRaw["scale"]) * 0.001
+            value = float(self._objectRaw.attrs["value"]) \
+                    * 10**int(self._objectRaw["scale"]) * 0.001
             time.sleep(value)
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
+        ### START SUBROUTINE-OBJECT-TYPES
+        elif self._type == "ftProSubroutineRef":
+            """
+            get subroutine-Name and find entry-pin-id
+            """
+            subrtName = self._objectRaw.attrs["name"]
+            subroutines = self._subrtTools._subrts
+            lastPin = self._subrtTools._lastPin
+            if subrtName in subroutines:
+                subrt = subroutines[subrtName]
+                pinData = self._findPin(lastPin)
+                inputPinUID = pinData["pinid"]
+                endObj = subrt._findSubrtInputObject(inputPinUID)[1]
+                refSubrt = self._subrtTools._name
+                refObjID = self._id
+                subrtOutputObj = subrt.run(endObj, refSubrt, refObjID)
+                subrtOutputUID = subrtOutputObj._objectRaw.attrs["uniqueID"]
+                for pin in self._pins:
+                    if pin["pinid"] == subrtOutputUID:
+                        outputID = pin["id"]
+            else:
+                print("The subroutine " + str(subrtName) + " cannot be found in this file.")
+        elif self._type == "ftProSubroutineFlowIn":
+            outputID = self.getPinIdByClass("flowobjectoutput")[0]
+        elif self._type == "ftProSubroutineFlowOut":
+            outputID = self._id
+        elif self._type == "ftProSubroutineDataIn":
+            # use information in self._subrtTools._subrtReference to start
+            # backpropagation
+            pass
+        elif self._type == "ftProSubroutineDataOut":
+            # use hint seen ftProSubroutineDataIn
+            print("FOOOO, HELP ME")
+            pass
+        ### STOP SUBROUTINE-OBJECT-TYPES
         elif self._type == "ftProProcessStop":
             outputID = None
             arguments = None
@@ -391,3 +432,13 @@ class RoboProObject(object):
         # 4  = A 5k    Sensor-Types 4-5 (NTC-Widerstand, Fotowiderstand)
         # 10 = Ultra…  Sensor-Type  7   (Abstandssensor)
         return IFaceNumber, IFacePortNo, IFacePortMode
+
+    def _findPin(self, pinID):
+        """
+        The _findPin-Function takes an inputID and returns the pin-object of the
+        given Pin-ID. If no corresponding pin is found it returns none.
+        """
+        for pin in self._pins:
+            if pin["id"] == pinID:
+                return pin
+        return None

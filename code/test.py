@@ -13,12 +13,13 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-file = open("../test/8.1_advanced.rpp", "r")
+file = open("../test/8.3_test.rpp", "r")
 # file = open("../test/testprogramm.rpp", "r")
 text = "".join(file.readlines())
 ropro = RoboProProgram(text)
-ropro.run()
 # ropro._subroutines["Hauptprogramm"].debugPrint()
+# print(ropro._subroutines["up1"]._subroutineRaw)
+ropro.run()
 
 # file = open("../test/input_test.rpp", "r")
 # text = "".join(file.readlines())

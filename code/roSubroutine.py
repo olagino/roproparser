@@ -41,6 +41,7 @@ class RoboProSubroutine(object):
         "ftProSubroutineFlowOut",
         "ftProSubroutineDataIn",
         "ftProSubroutineDataOut",
+        "ftProSubroutineRef",
         # Variable and stuff
         "ftProDataVariable",
         "ftProDataConst",
@@ -61,6 +62,8 @@ class RoboProSubroutine(object):
         self._connectionFragments = []
         self._io = None
         self._lastPin = None
+        self._subrts = None
+        self._name = self._subroutineRaw.attrs["name"]
         self.parse()
 
     def parse(self):
@@ -166,12 +169,26 @@ class RoboProSubroutine(object):
                     return outPinList, object
         return None, None
 
+    def _findSubrtInputObject(self, pinID):
+        """
+        The function looks for a specific input of the subroutine. This is reali-
+        zed via a unique Pin-ID given in the Subroutine-Object and the Subroutine-
+        Class.
+        """
+        for object in self._objects:
+            if object._type == "ftProSubroutineFlowIn":
+                if object._objectRaw.attrs["uniqueID"] == pinID:
+                    outPinList = object.getPinIdByClass("flowobjectoutput")
+                    return outPinList, object
+        return None, None
+
     def debugPrint(self):
         print("SUBROUTINE HERE\n" +50 * "=")
         for obj in self._objects:
             print("OBJ", obj._type, "(" + obj._id + ")")
             for pin in obj._pins:
-                print(" >", "ID" + pin["id"], pin["pinclass"], pin["name"])
+                print(pin)
+                print(" >", "ID" + pin["id"], pin["pinclass"], pin["name"], "(pinid" + str(pin["pinid"]) + ")")
         for wire in self._wires:
             print("WIR", wire._type)
             for point in wire._points:
@@ -208,35 +225,47 @@ class RoboProSubroutine(object):
         return elChain
 
 
-    def run(self, startObj=None):
+    def run(self, startObj=None, referenceSubprogram=None, referenceObjectID=None):
         '''
         The run function is mainly called in two situations.
         1) The subroutine is started as an Main-Program. It doesn't have a Sub-
         program-Input-Block but one or more main start-blocks. Each block should
         be run in an own thread, following all elements down the logical structure.
-        2) The subroutine is referenced and started by another subprogram. It now
-        acts to the outside-function as an roObject, dedicated to do its stuff and
-        then just return the outputID and optionally some arguments.
+        2) The subroutine is referenced and called by another subprogram. To run
+        smoothly it needs the name and objectID of the Subprogram-Block that called
+        the function and the object inside the subroutine where it should start
+        (because subprograms can have multiple inputs. the references are needed
+        to enable the backpropagation of input/output-Blocks).
         '''
-        for startobject in self._objects:
-            if startobject._type == "ftProProcessStart":
-                # situation 1
-                # TODO: create new thread for the following while-lool/start block
-                outputID, arguments = startobject.run(self)
-                while outputID is not None:
-                    # follow the output-wire
-                    nextPin = self._followWire(outputID)
-                    nextObj = self._findObject(nextPin)[1]
-                    # TODO: check, if object has input-values.
-                    # if so, backpropagate to get these values
-                    if nextObj is not None:
-                        self._lastPin = nextPin  # save last object
-                        outputID, arguments = nextObj.run(self, arguments=arguments)
-                    else:
-                        break
+        if startObj is None:
+            for startobject in self._objects:
+                if startobject._type == "ftProProcessStart":
+                    # situation 1
+                    # TODO: create new thread for the following while-lool/start block
+                    self._runObjectStructure(startobject)
+                else:
+                    return None
+        else:
+            self._subrtReference = (referenceSubprogram, referenceObjectID)
+            return self._runObjectStructure(startObj)
 
-            elif startobject._type == "ftProSubroutineFlowIn":
-                # situation 2
-                pass
+    def _runObjectStructure(self, startobject):
+        """
+        This function tries to follow element for element down the structure and
+        executes each single block.
+        """
+        outputID, arguments = startobject.run(self)
+        while outputID is not None:
+            # follow the output-wire
+            nextPin = self._followWire(outputID)
+            nextObj = self._findObject(nextPin)[1]
+            # TODO: check, if object has input-values.
+            # if so, backpropagate to get these values
+            if nextObj is not None:
+                if nextObj._type == "ftProSubroutineFlowOut":
+                    return nextObj
+                else:
+                    self._lastPin = nextPin  # save last object
+                    outputID, arguments = nextObj.run(self, arguments=arguments)
             else:
-                return None
+                break
