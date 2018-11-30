@@ -99,6 +99,8 @@ class RoboProIOWrap(object):
         val = int(IFacePortSettings["value"])
         if val > 512:
             val = 512
+        if val < 0:
+            val = 0
         if IFacePortNo >= 0 and IFacePortNo <= 3:
             output = iface.motor(IFacePortNo+1)
             if IFacePortSettings["commandType"] in ["Links", "ccw"]:
