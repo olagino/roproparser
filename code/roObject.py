@@ -85,7 +85,7 @@ class RoboProObject(object):
         where this is quite helpful.
         '''
         outputID = None
-        print(self)
+        # print(self)
         if self._type == "ftProProcessStart": # program start block
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
         elif self._type == "ftProFlowIf":  # if block
@@ -101,6 +101,10 @@ class RoboProObject(object):
                 pinIDin = self.getPinIdByClass("dataobjectinput")[0]
                 # get the backpropagated value and return IDs depending on the value
                 val = self.calculateDataValue(pinIDin)["value"]
+                if val == 1 or val == True or val > 0:
+                    outputID = outYes
+                else:
+                    outputID = outNo
             elif styleNo == 2:  # Verzweigung Digital
                 IFNo, IFPortNo, IFPortMode = self.readInputMeta()
                 val = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
@@ -130,7 +134,7 @@ class RoboProObject(object):
         elif self._type == "ftProDataIn": # sensor/data-in block
             # fetch type dependent settings
             IFNo, IFPortNo, IFPortMode = self.readInputMeta()
-            arguments["value"] = True # TODO: connect to IO-Wrapper
+            arguments["value"] = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
         elif self._type == "dataHelper": # merging Cable nodes
             if mode == self.normal:
                 # for pin in self._pins:
@@ -172,6 +176,7 @@ class RoboProObject(object):
                 "commandType": comType,
                 "value": value
                 }
+                print(arguments)
                 tOutputID = self.getPinIdByClass("dataobjectoutput")[0]
                 self.calculateFollowers(tOutputID, arguments)
                 outputID = self.getPinIdByClass("flowobjectoutput")[0]
@@ -197,6 +202,7 @@ class RoboProObject(object):
             except KeyError:
                 pass
             # do something with the IO
+            print(IFacePortNo, arguments)
             self._subrtTools._io.setOutputValue(IFaceNumber, IFacePortNo, arguments)
         elif self._type == "ftProDataOutDualEx":  # encodermotor
             IFaceNumber = self._objectRaw.attrs["module"]

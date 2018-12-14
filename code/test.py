@@ -13,22 +13,7 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-file = open("../test/8.4_basic.rpp", "r")
-# file = open("../test/testprogramm.rpp", "r")
+file = open("../test/Teleskop.rpp", "r")
 text = "".join(file.readlines())
 ropro = RoboProProgram(text)
-# ropro._subroutines["Hauptprogramm"].debugPrint()
-# print(ropro._subroutines["up1"]._subroutineRaw)
 ropro.run()
-
-# file = open("../test/input_test.rpp", "r")
-# text = "".join(file.readlines())
-# ropro = RoboProProgram(text)
-# subrout = ropro._subroutines["Hauptprogramm"]
-# for obj in subrout._objects:
-#     if obj._type == "ftProDataMssg":
-#         print("OBJ", obj._type, "(" + obj._id + ")")
-#         data = obj._objectRaw.attrs["command"]
-#         print(data)
-#     else:
-#         print(obj._type)
