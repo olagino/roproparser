@@ -31,16 +31,16 @@
 * [x] Unterprogramm Befehlsausgang
 
 ## 8.4 VARIABLE, LISTE
-* [ ] Variable global
-* [ ] Variable lokal
+* [o] Variable global
+* [o] Variable lokal
 * [x] Konstante
 * [ ] Timer-Variable
 * [ ] Liste
 
 ## 8.5 BEFEHLE
-* [ ] Zuweisen =
-* [ ] Plus +
-* [ ] Minus -
+* [x] Zuweisen =
+* [x] Plus +
+* [x] Minus -
 * [x] Rechts
 * [x] Links
 * [ ] Stopp

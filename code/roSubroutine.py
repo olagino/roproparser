@@ -58,11 +58,13 @@ class RoboProSubroutine(object):
         self._objects = []
         self._wires = []
         self._subroutineRaw = subroutineXmlSoup
-        self._connectionChains = []
-        self._connectionFragments = []
+        # self._connectionChains = []
+        # self._connectionFragments = []
         self._io = None
         self._lastPin = None
         self._subrts = None
+        self._roProg = None
+        self._data = None
         self._name = self._subroutineRaw.attrs["name"]
         self.parse()
 

@@ -335,7 +335,81 @@ class RoboProObject(object):
             outputID = None
             pass
         elif self._type == "ftProDataConst":  # constant-variables
-            arguments["value"] = int(self._objectRaw.attrs["value"])
+            arguments["value"] = float(self._objectRaw.attrs["value"])
+        elif self._type == "ftProDataVariable":
+            if self._data is None:
+                self._data = {}
+            if "scope" not in self._data:
+                self._data["scope"] = int(self._objectRaw.attrs["scope"])
+            name = self._objectRaw.attrs["name"]
+            if mode == self.normal: # if variable isn't initialized yet
+                print("normal", self._data["scope"])
+                if self._data["scope"] == 2:  # scope = object
+                    if "value" in arguments and "commandType" in arguments:
+                        val = self._data["value"]
+                        if arguments["commandType"] == "=":
+                            valueT = float(arguments["value"])
+                        elif arguments["commandType"] == "+":
+                            valueT = float(val) + float(arguments["value"])
+                        elif arguments["commandType"] == "-":
+                            valueT = float(val) - float(arguments["value"])
+                        else:
+                            print("ERROR", "command cannot be applied on variables")
+                    else:
+                        valueT = float(self._objectRaw.attrs["init"])
+                    self._data["value"] = valueT
+                elif self._data["scope"] == 1:  # scope = global
+                    if self._subrtTools._roProg._data is None:
+                        self._subrtTools._roProg._data = {}
+                    if "variable" not in self._subrtTools._roProg._data:
+                        self._subrtTools._roProg._data["variable"] = {}
+                    if "value" in arguments and "commandType" in arguments:
+                        if name in self._subrtTools._roProg._data["variable"]:
+                            val = self._subrtTools._roProg._data["variable"][name]
+                        else:
+                            val = float(self._objectRaw.attrs["init"])
+                        if arguments["commandType"] == "=":
+                            valueT = float(arguments["value"])
+                        elif arguments["commandType"] == "+":
+                            valueT = float(val) + float(arguments["value"])
+                        elif arguments["commandType"] == "-":
+                            valueT = float(val) - float(arguments["value"])
+                        else:
+                            print("ERROR", "command cannot be applied on variables")
+                    else:
+                        valueT = float(self._objectRaw.attrs["init"])
+                    self._subrtTools._roProg._data["variable"][name] = valueT
+                elif self._data["scope"] == 0:  # scope = local, in subprogram
+                    if self._subrtTools._data is None:
+                        self._subrtTools._data = {}
+                    if "variable" not in self._subrtTools._data:
+                        self._subrtTools._data["variable"] = {}
+                    if "value" in arguments and "commandType" in arguments:
+                        if name in self._subrtTools._data["variable"]:
+                            val = self._subrtTools._data["variable"][name]
+                        else:
+                            val = float(self._objectRaw.attrs["init"])
+                        if arguments["commandType"] == "=":
+                            valueT = float(arguments["value"])
+                        elif arguments["commandType"] == "+":
+                            valueT = float(val) + float(arguments["value"])
+                        elif arguments["commandType"] == "-":
+                            valueT = float(val) - float(arguments["value"])
+                        else:
+                            print("ERROR", "command cannot be applied on variables")
+                    self._subrtTools._data["variable"][name] = valueT
+            if mode == self.reverse:  # set variable to new value
+                arguments["value"] = float(self._objectRaw.attrs["init"])
+                if self._data["scope"] == 2:  # localobj
+                    if name in self._data["variable"]:
+                        arguments["value"] = float(self._data["value"])
+                elif self._data["scope"] == 1:  # global
+                    if name in self._subrtTools._roProg._data["variable"]:
+                        arguments["value"] = float(self._subrtTools._roProg._data["variable"][name])
+                elif self._data["scope"] == 0:  # local subprogram
+                    if name in self._subrtTools._data["variable"]:
+                        arguments["value"] = self._subrtTools._data["variable"][name]
+                print("ARGS", arguments)
         elif self._type == "ftProFlowDelay":  # normal waiting-function
             value = float(self._objectRaw.attrs["value"]) \
                     * 10**int(self._objectRaw["scale"]) * 0.001

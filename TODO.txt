@@ -1,0 +1,15 @@
+Untested
+--------
+- Floating-Point variables and/or values
+- All operations (=,+,-) on all variable types (solution isn't very well desinged: copied for-loops. change when removing if-else structure)
+
+Not implemented but planned
+---------------
+- Multithreaded (Sub)programs
+- Multicontroller support (IOWrap-Library is very rudimentary for now)
+- New Structure for roObject-Class: Every Item Type has its own class, functions etc
+  elliminate the huge if-else-structure
+
+Not working
+-----------
+- "passthrough"-subprograms which are called by data-wires and not in a flow-thing

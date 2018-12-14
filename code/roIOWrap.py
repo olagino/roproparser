@@ -22,7 +22,7 @@ class RoboProIOWrap(object):
 
     def __init__(self):
         self.ifaces = {}
-        self.ifaces["IF1"] = ftrobopy.ftrobopy("192.168.7.2")
+        # self.ifaces["IF1"] = ftrobopy.ftrobopy("192.168.7.2")
         time.sleep(0.5)
 
     def setSensorType(self, IFaceNumber, IFacePortNo, IFacePortType):

@@ -23,6 +23,7 @@ class RoboProProgram(object):
     def __init__(self, xmlstr):
         self.soup = BeautifulSoup(xmlstr, "xml")
         self._subroutines = {}
+        self._data = None
         self._io = RoboProIOWrap()
         self.parse()
 
@@ -40,6 +41,7 @@ class RoboProProgram(object):
         subRtName = subRaw.attrs["name"]
         subRtObj = RoboProSubroutine(subRaw)
         subRtObj._subrts = self._subroutines
+        subRtObj._roProg = self
         subRtObj.setIO(self._io)
         self._subroutines[subRtName] = subRtObj
 
