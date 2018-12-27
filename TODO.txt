@@ -10,8 +10,17 @@ Not implemented but planned
 - New Structure for roObject-Class: Every Item Type has its own class, functions etc
   elliminate the huge if-else-structure
 
+Not implemented in Code
+---------------
+- ftProDataOutSngl Non-classic-Mode
+- ftProFlowWaitChange Non-classic-Mode
+- IOWrap: setSensorType - don't know if already used in code
+- IOWrap: setOutputType - don't know either
+
 Not working
 -----------
 - backpropagation of data wires. (e.g. two "right"-command boxes connected to the same variable)
 - "passthrough"-subprograms which are called by data-wires and not in a flow-thing
-- different languages (especially Pin-Names like "J" and "N" for "Ja" and "Nein". Maybe the document-language can be found in the main-metadata-block?)
+- different languages -> Maybe the document-language can be found in the main-metadata-block?)
+  - Pin-Names like "J" and "N" for "Ja" and "Nein"
+  - Name of "Hauptprogramm" as the startpoint (maybe look for an main-program-identifier as well)

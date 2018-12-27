@@ -16,8 +16,11 @@ __status__     = "Developement"
 class RoboProSubroutine(object):
     """
     The subroutineObject handles all wires and objects inside a subroutine in-
-    stanciated by the RoboProProgram-Class.
+    stanciated by the RoboProProgram-Class. It is instanciated by the roProgram-
+    class and is also controlled from there (e.g. run()-function).
     """
+
+
     objectTypeList = [
         # Start-Stop-Blocks: basic elements
         "ftProProcessStart",
@@ -69,6 +72,11 @@ class RoboProSubroutine(object):
         self.parse()
 
     def parse(self):
+        """
+        It parses the subroutines XML-Structure and extracts all wires and objects
+        connecting each other. Therefor it uses primarily the addNewObject and
+        addNewWire-methods.
+        """
         objectsRaw = []
         # collect all objects in the xml
         for objectType in self.objectTypeList:
@@ -77,7 +85,6 @@ class RoboProSubroutine(object):
             })
             for objectRaw in data:
                 self.addNewObject(objectRaw)
-
         wiresRaw = []
         # collect all wires in the xml
         for wireType in self.wireTypeList:
@@ -86,6 +93,7 @@ class RoboProSubroutine(object):
             })
             for wireRaw in data:
                 self.addNewWire(wireRaw)
+        # print("Found", len(objectsRaw), "objects and", len(wiresRaw), "wires.")
 
     def setIO(self, io):
         self._io = io
@@ -185,6 +193,11 @@ class RoboProSubroutine(object):
         return None, None
 
     def debugPrint(self):
+        """
+        This function is mainly used for testing purposes. It outputs all objects
+        and wires so you can backpropagate all paths by hand to check if the pro-
+        gram works correctly.
+        """
         print("SUBROUTINE HERE\n" +50 * "=")
         for obj in self._objects:
             print("OBJ", obj._type, "(" + obj._id + ")")

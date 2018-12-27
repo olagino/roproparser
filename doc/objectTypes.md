@@ -12,7 +12,7 @@
 * [x] Warten auf Eingang
 * [x] Impulszähler
 * [x] Zählschleife
-* [ ] Sound
+* [x] Sound
 
 ## 8.2 SENDEN, EMPFANGEN
 * [ ] Sender

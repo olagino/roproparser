@@ -20,8 +20,22 @@ class RoboProIOWrap(object):
     """
 
 
-    def __init__(self):
+    def __init__(self, ifconfig):
+        """
+        ifconfig Variable-Format:
+        Interface-Identifier as key, link to IO-Library as value
+        config = {
+        "IF1": ftrobopy.ftrobopy('192.168.7.2'),
+        "EM1": ftrobopy.ftrobopy('192.168.8.2'),
+        …
+        "EM8": fttxpy.fttxpy(…),
+        }
+        """
         self.ifaces = {}
+        if type(ifconfig) is dict and len > 1:  # a bit of checking before adding the external io-Wraps to the systems
+            for ifconf in ifconfig:
+                if ifconf in ["IF1", "EM1", "EM2", "EM3", "EM4", "EM5", "EM6", "EM7", "EM8"]:
+                    self.ifaces[ifconf] = ifconfig[ifconf]
         self.ifaces["IF1"] = ftrobopy.ftrobopy("192.168.178.44")
         time.sleep(0.5)
 
@@ -122,3 +136,10 @@ class RoboProIOWrap(object):
             while output.getCurrentDistance() < IFacePortSettings["distance"]:
                 time.sleep(0.01)
             output.stop()
+
+    def setSound(self, IFaceNumber, soundNumber=0, wait=False, repeat=1):
+        iface = self.ifaces[IFaceNumber]
+        iface.play_sound(int(soundNumber), int(repeat))
+        if wait == True:
+            while iface.sound_finished() == False:
+                time.sleep(0.01)

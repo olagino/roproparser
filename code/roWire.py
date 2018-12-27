@@ -18,6 +18,8 @@ class RoboProWire(object):
     manually. This feature is mainly used for Pseudo-Objects used on converging
     wires.
     """
+
+
     def __init__(self, wireXmlSoup=None):
         self._wireRaw = wireXmlSoup
         self._type = ""

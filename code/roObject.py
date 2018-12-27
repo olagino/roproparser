@@ -19,6 +19,8 @@ class RoboProObject(object):
     manually. This feature is mainly used for Pseudo-Objects used on converging
     wires.
     """
+
+
     normal = 0
     reverse = 1
 
@@ -85,7 +87,7 @@ class RoboProObject(object):
         where this is quite helpful.
         '''
         outputID = None
-        # print(self)
+        print(self)  # debug output prints every object it processes
         if self._type == "ftProProcessStart": # program start block
             outputID = self.getPinIdByClass("flowobjectoutput")[0]
         elif self._type == "ftProFlowIf":  # if block
@@ -137,14 +139,11 @@ class RoboProObject(object):
             arguments["value"] = self._subrtTools._io.getSensorValue(IFNo, IFPortNo, IFPortMode)
         elif self._type == "dataHelper": # merging Cable nodes
             if mode == self.normal:
-                # for pin in self._pins:
-                #     print(pin)
                 try:
                     outputID = self.getPinIdByAttr("name", "flowobjectoutput")[0]
                 except IndexError:
                     outputID = self.getPinIdByAttr("name", "dataobjectoutput")[0]
                 # outputID = self._subrtTools._followWire(outputID)
-                # print("HEY", self._subrtTools._findObject(outputID)[1])
             elif mode == self.reverse:
                 pass
         elif self._type == "ftProDataMssg":  # motor and output commands
@@ -181,7 +180,7 @@ class RoboProObject(object):
                 self.calculateFollowers(tOutputID, arguments)
                 outputID = self.getPinIdByClass("flowobjectoutput")[0]
             elif mode == self.reverse:
-                pass # do nothing, the object isn't called actively
+                pass  # do nothing, the object isn't called actively
         elif self._type == "ftProDataOutDual":  # dual-motor-commands
             # if this object is used as an Level 1 Object, it has to fetch its arguments by itself
             if "classic" in self._objectRaw.attrs:
@@ -213,7 +212,7 @@ class RoboProObject(object):
             distance = int(self._objectRaw.attrs["distance"])
             value = int(self._objectRaw.attrs["speed"]) * 64
             out1 = int(self._objectRaw.attrs["output1"])
-            out2 = int(self._objectRaw.attrs["output2"]) -1 # minus one because of the "none"-option
+            out2 = int(self._objectRaw.attrs["output2"]) -1  # minus one because of the "none"-option
             # Values for out1 and out2
             # 0  = M1
             # 1  = M2
@@ -227,7 +226,7 @@ class RoboProObject(object):
                 "value": 0,
                 "commandType": "cw"
             }
-            if self._objectRaw.attrs["action"] == "0":  # abstand
+            if self._objectRaw.attrs["action"] == "0":  # distance
                 args1["distance"] = distance
                 args1["sleep"] = True
                 self._subrtTools._io.setOutputValue(IFaceNumber, out1, args1)
@@ -240,7 +239,7 @@ class RoboProObject(object):
                 args1["syncTo"] = out2
                 self._subrtTools._io.setOutputValue(IFaceNumber, out1, args1)
                 self._subrtTools._io.setOutputValue(IFaceNumber, out2, args2)
-            elif self._objectRaw.attrs["action"] == "2":  # synchron distanz
+            elif self._objectRaw.attrs["action"] == "2":  # synchron distance
                 args2 = {
                     "value": value,
                     "distance": distance,
@@ -338,7 +337,15 @@ class RoboProObject(object):
             else:
                 print("ERROR", pinName)
         elif self._type == "ftProFlowSound":  # play sound stuff
-            outputID = None
+            if "sounindex" in self._objectRaw.attrs:
+                index = self._objectRaw.attrs["sounindex"]
+                wait = bool(self._objectRaw.attrs["wait"])
+                repeat = self._objectRaw.attrs["repeatcount"]
+                IFaceNumber = "IF1"  # roboPro does not deliver this information
+                self._subrtTools._io.setSound(IFaceNumber, index, wait, repeat)
+            else:
+                print("ERROR: Sound element isn't formatted well")
+            outputID = self.getPinIdByClass("flowobjectoutput")[0]
             pass
         elif self._type == "ftProDataConst":  # constant-variables
             arguments["value"] = float(self._objectRaw.attrs["value"])
@@ -500,6 +507,10 @@ class RoboProObject(object):
             # print("RUN", obj, obj.run(arguments=arguments))
 
     def readInputMeta(self):
+        """
+        This helper function is mainly used in the IO-Specific blocks where the
+        same three parameters are used over and over again.
+        """
         IFaceNumber = self._objectRaw.attrs["module"]
         # IFaceNumber-Values:
         # IF1 = Master
