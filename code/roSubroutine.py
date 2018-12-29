@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 from bs4 import BeautifulSoup
+import threading
 from roObject import RoboProObject
 from roWire import RoboProWire
 
@@ -16,8 +17,11 @@ __status__     = "Developement"
 class RoboProSubroutine(object):
     """
     The subroutineObject handles all wires and objects inside a subroutine in-
-    stanciated by the RoboProProgram-Class.
+    stanciated by the RoboProProgram-Class. It is instanciated by the roProgram-
+    class and is also controlled from there (e.g. run()-function).
     """
+
+
     objectTypeList = [
         # Start-Stop-Blocks: basic elements
         "ftProProcessStart",
@@ -65,10 +69,16 @@ class RoboProSubroutine(object):
         self._subrts = None
         self._roProg = None
         self._data = None
+        self._threads = []
         self._name = self._subroutineRaw.attrs["name"]
         self.parse()
 
     def parse(self):
+        """
+        It parses the subroutines XML-Structure and extracts all wires and objects
+        connecting each other. Therefor it uses primarily the addNewObject and
+        addNewWire-methods.
+        """
         objectsRaw = []
         # collect all objects in the xml
         for objectType in self.objectTypeList:
@@ -77,7 +87,6 @@ class RoboProSubroutine(object):
             })
             for objectRaw in data:
                 self.addNewObject(objectRaw)
-
         wiresRaw = []
         # collect all wires in the xml
         for wireType in self.wireTypeList:
@@ -86,6 +95,7 @@ class RoboProSubroutine(object):
             })
             for wireRaw in data:
                 self.addNewWire(wireRaw)
+        # print("Found", len(objectsRaw), "objects and", len(wiresRaw), "wires.")
 
     def setIO(self, io):
         self._io = io
@@ -185,6 +195,11 @@ class RoboProSubroutine(object):
         return None, None
 
     def debugPrint(self):
+        """
+        This function is mainly used for testing purposes. It outputs all objects
+        and wires so you can backpropagate all paths by hand to check if the pro-
+        gram works correctly.
+        """
         print("SUBROUTINE HERE\n" +50 * "=")
         for obj in self._objects:
             print("OBJ", obj._type, "(" + obj._id + ")")
@@ -240,18 +255,33 @@ class RoboProSubroutine(object):
         to enable the backpropagation of input/output-Blocks).
         '''
         if startObj is None:
+            processCount = 0
+            for startobject in self._objects:
+                processCount += 1 if startobject._type == "ftProProcessStart" else 0
+            threadCreateCount = 0
+            print(processCount)
             for startobject in self._objects:
                 if startobject._type == "ftProProcessStart":
-                    # situation 1
+                    # if it is only one process, the only thread can be run directly here
+                    # if there are n processes, create n threads for them
+                    # Optional TODO: Only create n-1 threads, the last one can run directly
+                    if processCount == 1:
+                        startObj = self._runObjectStructure(startobject)
+                    else:
+                        print("Thread created")
+                        newThread = threading.Thread(target=self._runObjectStructure, args=(startobject, threadCreateCount))
+                        newThread.start()
+                        self._threads.append(newThread)
+                        threadCreateCount += 1
                     # TODO: create new thread for the following while-lool/start block
-                    self._runObjectStructure(startobject)
+                    processCount += 1
                 else:
                     return None
         else:
             self._subrtReference = (referenceSubprogram, referenceObject)
             return self._runObjectStructure(startObj)
 
-    def _runObjectStructure(self, startobject):
+    def _runObjectStructure(self, startobject, thr=0):
         """
         This function tries to follow element for element down the structure and
         executes each single block.
@@ -268,6 +298,8 @@ class RoboProSubroutine(object):
                     return nextObj
                 else:
                     self._lastPin = nextPin  # save last object
+                    print("Thr", thr)
                     outputID, arguments = nextObj.run(self, arguments=arguments)
             else:
                 break
+        return

@@ -13,7 +13,7 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-file = open("../test/Teleskop.rpp", "r")
-text = "".join(file.readlines())
-ropro = RoboProProgram(text)
+# ropro = RoboProProgram("../test/8.1_soundtest.rpp")
+ropro = RoboProProgram("../test/multi.rpp")
+print("Loaded, now starting")
 ropro.run()
