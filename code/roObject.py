@@ -273,10 +273,18 @@ class RoboProObject(object):
                 }
                 self._subrtTools._io.setOutputValue(IFaceNumber, IFacePortNo, IFacePortSettings)
                 outputID = self.getPinIdByClass("flowobjectoutput")[0]
-            else:
-                print("NOT implemented, please open an issue")
-
-            pass
+            else:  # if it is used as an orange-dataflow-object it gets its value via the dataline
+                # print(self._objectRaw)
+                IFaceNumber = self._objectRaw.attrs["module"]
+                IFacePortNo = int(self._objectRaw.attrs["output"]) + 4
+                IFaceResolution = int(self._objectRaw.attrs["resolution"])
+                IFacePortValue = int(arguments["value"]) if IFaceResolution == 0 else int(arguments["value"]) * 64
+                IFacePortValue = IFacePortValue if IFacePortValue >= 0 else 0
+                IFacePortSettings = {
+                    "value": IFacePortValue
+                }
+                self._subrtTools._io.setOutputValue(IFaceNumber, IFacePortNo, IFacePortSettings)
+                outputID = None
         elif self._type == "ftProFlowWaitChange" or self._type == "ftProFlowWaitCount": # wait for pulse change
             if "classic" in self._objectRaw.attrs:
                 self._data = 0

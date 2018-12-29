@@ -4,22 +4,24 @@ Untested
 - All operations (=,+,-) on all variable types (solution isn't very well desinged: copied for-loops. change when removing if-else structure)
 
 Not implemented but planned
----------------
+---------------------------
 - Multithreaded (Sub)programs
 - Multicontroller support (IOWrap-Library is very rudimentary for now)
 - New Structure for roObject-Class: Every Item Type has its own class, functions etc
   elliminate the huge if-else-structure
 
 Not implemented in Code
----------------
+-----------------------
 - ftProDataOutSngl Non-classic-Mode
 - ftProFlowWaitChange Non-classic-Mode
 - IOWrap: setSensorType - don't know if already used in code
 - IOWrap: setOutputType - don't know either
 
-Not working
------------
-- backpropagation of data wires. (e.g. two "right"-command boxes connected to the same variable)
+Not working completely correct
+------------------------------
+- backpropagation of data wires.
+  - e.g. two "right"-command boxes connected to the same variable
+  - two "lamp on" - "lamp off" commands are linked to the same output-element through a data helper
 - "passthrough"-subprograms which are called by data-wires and not in a flow-thing
 - different languages -> Maybe the document-language can be found in the main-metadata-block?)
   - Pin-Names like "J" and "N" for "Ja" and "Nein"

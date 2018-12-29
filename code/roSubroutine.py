@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 from bs4 import BeautifulSoup
+import threading
 from roObject import RoboProObject
 from roWire import RoboProWire
 
@@ -68,6 +69,7 @@ class RoboProSubroutine(object):
         self._subrts = None
         self._roProg = None
         self._data = None
+        self._threads = []
         self._name = self._subroutineRaw.attrs["name"]
         self.parse()
 
@@ -253,18 +255,33 @@ class RoboProSubroutine(object):
         to enable the backpropagation of input/output-Blocks).
         '''
         if startObj is None:
+            processCount = 0
+            for startobject in self._objects:
+                processCount += 1 if startobject._type == "ftProProcessStart" else 0
+            threadCreateCount = 0
+            print(processCount)
             for startobject in self._objects:
                 if startobject._type == "ftProProcessStart":
-                    # situation 1
+                    # if it is only one process, the only thread can be run directly here
+                    # if there are n processes, create n threads for them
+                    # Optional TODO: Only create n-1 threads, the last one can run directly
+                    if processCount == 1:
+                        startObj = self._runObjectStructure(startobject)
+                    else:
+                        print("Thread created")
+                        newThread = threading.Thread(target=self._runObjectStructure, args=(startobject, threadCreateCount))
+                        newThread.start()
+                        self._threads.append(newThread)
+                        threadCreateCount += 1
                     # TODO: create new thread for the following while-lool/start block
-                    self._runObjectStructure(startobject)
+                    processCount += 1
                 else:
                     return None
         else:
             self._subrtReference = (referenceSubprogram, referenceObject)
             return self._runObjectStructure(startObj)
 
-    def _runObjectStructure(self, startobject):
+    def _runObjectStructure(self, startobject, thr=0):
         """
         This function tries to follow element for element down the structure and
         executes each single block.
@@ -281,6 +298,8 @@ class RoboProSubroutine(object):
                     return nextObj
                 else:
                     self._lastPin = nextPin  # save last object
+                    print("Thr", thr)
                     outputID, arguments = nextObj.run(self, arguments=arguments)
             else:
                 break
+        return

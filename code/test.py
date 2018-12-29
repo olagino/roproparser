@@ -13,5 +13,7 @@ __email__      = "olaginos-buero@outlook.de"
 __status__     = "Developement"
 
 
-ropro = RoboProProgram("../test/8.1_soundtest.rpp")
+# ropro = RoboProProgram("../test/8.1_soundtest.rpp")
+ropro = RoboProProgram("../test/multi.rpp")
+print("Loaded, now starting")
 ropro.run()
